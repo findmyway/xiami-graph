@@ -28,7 +28,10 @@ class XiamiInfo:
                        "artist_weekrank": self.get_artist_rank,
                        "artist_totalrank": self.get_artist_rank,
                        "collect": self.get_collect,
-                       "collect_fav": self.get_collect
+                       "collect_fav": self.get_collect,
+                       "recent_listen": self.get_recent_listen,
+                       "followings": self.get_followings,
+                       "fans": self.get_followings
                        }
 
 
@@ -144,3 +147,32 @@ class XiamiInfo:
             s.add((collect_id,collect_time))
         collect_item['items'] = s
         return collect_item
+
+    def get_recent_listen(self):
+        listen_list_item = LibItem()
+        s = set()
+        for x in self.soup.find("table", "track_list").find_all("tr"):
+            song_id_info = x.attrs["id"].strip("track_")
+            track_time = x.find("td", "track_time").text
+            if u'前' in track_time:
+                # 把不精确的时间抛弃, 避免影响对时间的分析结果
+                track_time = None
+            s.add((song_id_info, track_time))
+        listen_list_item['items'] = s
+        return listen_list_item
+
+    def get_followings(self):
+        followings_item = LibItem()
+        s = set()
+        for x in self.soup.find("ul", "clearfix user_list").find_all("li"):
+            uid_info = x.find("p", "name").a.attrs["href"]
+            pattern1 = re.compile(r'/u/(\d+)')
+            uid = pattern1.search(uid_info).group(1)
+            followings_fans_info = x.find("span").text
+            pattern2 = re.compile(r'(\d+).+(\d+)')
+            search_result = pattern2.search(followings_fans_info)
+            n_followings = int(search_result.group(1))
+            n_fans = int(search_result.group(2))
+            s.add((uid, n_followings, n_fans))
+        followings_item["items"] = s
+        return followings_item

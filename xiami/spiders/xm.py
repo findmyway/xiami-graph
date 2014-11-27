@@ -22,10 +22,13 @@ class XmSpider(scrapy.Spider):
     artist_weekrank_url = "http://www.xiami.com/space/charts/u/{uid}/c/artist/t/week/page"
     collect_url = "http://www.xiami.com/space/collect/u/{uid}/order/1/p/1/page"
     collect_fav_url = "http://www.xiami.com/space/collect-fav/u/{uid}/order//page"
+    recent_listen_url = "http://www.xiami.com/space/charts-recent/u/{uid}/page"
+    following_url = "http://www.xiami.com/space/following/u/{uid}/page"
+    fans_url = "http://www.xiami.com/space/fans/u/{uid}/page"
 
     allowed_domains = ["xiami.com"]
 
-    current_uid = "8539366"
+    current_uid = "874999"
 
     def start_requests(self):
         yield scrapy.Request(url=self.user_url.format(uid=self.current_uid),
@@ -143,15 +146,40 @@ class XmSpider(scrapy.Spider):
         #                      meta={"type": "collect", "n_per_page": 12})
 
         # step:13 get collect_fav
-        yield scrapy.Request(url=self.collect_fav_url.format(uid=self.current_uid),
+        # yield scrapy.Request(url=self.collect_fav_url.format(uid=self.current_uid),
+        #                      headers={
+        #                          'User-Agent': random.choice(ALL_AGENTS),
+        #                          'Referer': None
+        #                      },
+        #                      callback=self.parse_page,
+        #                      meta={"type": "collect_fav", "n_per_page": 12})
+
+        #step:14 get recent listen records
+        # yield scrapy.Request(url=self.recent_listen_url.format(uid=self.current_uid),
+        #                      headers={
+        #                          'User-Agent': random.choice(ALL_AGENTS),
+        #                          'Referer': None
+        #                      },
+        #                      callback=self.parse_page,
+        #                      meta={"type": "recent_listen", "n_per_page": 50})
+
+        # step:15 get followings
+        # yield scrapy.Request(url=self.following_url .format(uid=self.current_uid),
+        #                      headers={
+        #                          'User-Agent': random.choice(ALL_AGENTS),
+        #                          'Referer': None
+        #                      },
+        #                      callback=self.parse_page,
+        #                      meta={"type": "followings", "n_per_page": 12})
+
+        # step:16 get fans
+        yield scrapy.Request(url=self.fans_url.format(uid=self.current_uid),
                              headers={
                                  'User-Agent': random.choice(ALL_AGENTS),
                                  'Referer': None
                              },
                              callback=self.parse_page,
-                             meta={"type": "collect_fav", "n_per_page": 12})
-
-
+                             meta={"type": "fans", "n_per_page": 12})
 
     def parse_page(self, response):
         soup = BeautifulSoup(response.body)
