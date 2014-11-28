@@ -105,7 +105,8 @@ class XiamiInfo:
             song_url = x.find("td", "song_name").a.attrs["href"]
             pattern = re.compile(r'/song/(\d+)')
             song_id = pattern.search(song_url).group(1)
-            song_hot = int(x.find("td", "song_hot").text)
+            song_hot = x.find("td", "song_hot").text
+            song_hot = int(song_hot) if song_hot else 1  # some song has empty song_hot
             s.add((song_id, song_hot))
         songs_rank['items'] = s
         return songs_rank
@@ -117,7 +118,8 @@ class XiamiInfo:
             album_url = x.find("p", "name").a.attrs["href"]
             pattern = re.compile(r'/album/(\d+)')
             album_id = pattern.search(album_url).group(1)
-            album_hot = int(x.find("em", "playcounts").text)
+            album_hot = x.find("em", "playcounts").text
+            album_hot = int(album_hot) if album_hot else 1  # some album has empty album_hot
             s.add((album_id, album_hot))
         album_rank['items'] = s
         return album_rank

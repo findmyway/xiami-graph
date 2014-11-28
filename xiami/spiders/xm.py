@@ -1,194 +1,70 @@
 # -*- coding: utf-8 -*-
 import re
 import random
+
 import scrapy
 from bs4 import BeautifulSoup
+
+from xiami.tools.userpage_info import BASIC_PARSE_INFOS
+
 from xiami.tools.agents import ALL_AGENTS
 from xiami.get_info import XiamiInfo
 
 
 class XmSpider(scrapy.Spider):
     name = "xm"
-    user_url = "http://www.xiami.com/u/{uid}"
-    libsong_url = "http://www.xiami.com/space/lib-song/u/{uid}/page"
-    unlibsong_url = "http://www.xiami.com/space/unlib-song/u/{uid}/page"
-    libalbum_url = "http://www.xiami.com/space/lib-album/u/{uid}/page"
-    libartist_url = "http://www.xiami.com/space/lib-artist/u/{uid}/page"
-    song_weekrank_url = "http://www.xiami.com/space/charts/u/{uid}/c/song/t/week/page"
-    song_totalrank_url = "http://www.xiami.com/space/charts/u/{uid}/c/song/t/all/page"
-    album_weekrank_url = "http://www.xiami.com/space/charts/u/{uid}/c/album/t/week/page"
-    album_totalrank_url = "http://www.xiami.com/space/charts/u/{uid}/c/album/t/all/page"
-    artist_totalrank_url = "http://www.xiami.com/space/charts/u/{uid}/c/artist/t/all/page"
-    artist_weekrank_url = "http://www.xiami.com/space/charts/u/{uid}/c/artist/t/week/page"
-    collect_url = "http://www.xiami.com/space/collect/u/{uid}/order/1/p/1/page"
-    collect_fav_url = "http://www.xiami.com/space/collect-fav/u/{uid}/order//page"
-    recent_listen_url = "http://www.xiami.com/space/charts-recent/u/{uid}/page"
-    following_url = "http://www.xiami.com/space/following/u/{uid}/page"
-    fans_url = "http://www.xiami.com/space/fans/u/{uid}/page"
-
     allowed_domains = ["xiami.com"]
 
-    current_uid = "874999"
-
     def start_requests(self):
-        yield scrapy.Request(url=self.user_url.format(uid=self.current_uid),
+        # jump
+        yield scrapy.Request(url="http://www.xiami.com",
                              headers={'User-Agent': random.choice(ALL_AGENTS)},
-                             callback=self.parse_user)
+                             callback=self.gen_uids)
 
-    def parse_user(self, response):
-        # step1: get user info
-        # user_info = XiamiInfo(response.body)
-        # user_item = user_info.get_item("user_info")
-        # user_item['uid'] = self.current_uid
-        # user_item['item_type'] = 'user_info'
+    def gen_uids(self, response):
+        uids = ["874999"]
+        for uid in uids:
+            # parse user's basic info
+            yield scrapy.Request(url="http://www.xiami.com/u/" + uid,
+                                 headers={
+                                     "User-Agent": random.choice(ALL_AGENTS),
+                                     "Referer": None
+                                 },
+                                 callback=self.user_info,
+                                 meta={"uid": uid}
+            )
+            # parse user's relations to songs, artists, collections, other users
+            for parse_type, parse_info in BASIC_PARSE_INFOS.iteritems():
+                yield scrapy.Request(url=parse_info["url"].format(uid=uid),
+                                     headers={
+                                         "User-Agent": random.choice(ALL_AGENTS),
+                                         "Referer": None
+                                     },
+                                     callback=self.parse_page,
+                                     meta={"type": parse_type,
+                                           "n_per_page": parse_info["n_items_per_page"],
+                                           "uid": uid
+                                     }
+                )
 
-        # yield user_item
-        #
-        # step2: get lib_songs
-        # yield scrapy.Request(url=self.libsong_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "lib_song",
-        #                            "n_per_page": 25})
-
-        #
-        # step3: get unlib_songs
-        # yield scrapy.Request(url=self.unlibsong_url.format(uid=self.current_uid),
-        #                       headers={
-        #                           'User-Agent': random.choice(ALL_AGENTS),
-        #                           'Referer': None
-        #                       },
-        #                     callback=self.parse_page,
-        #                     meta={"type": "unlib_song", "n_per_page": 25})
-
-        # step4: get lib_albums
-        # yield scrapy.Request(url=self.libalbum_url.format(uid=self.current_uid),
-        #                       headers={
-        #                           'User-Agent': random.choice(ALL_AGENTS),
-        #                           'Referer': None
-        #                       },
-        # callback=self.parse_page,
-        # meta={"type": "lib_album", "n_per_page": 15})
-
-        # step5: get lib_artists
-        # yield scrapy.Request(url=self.libartist_url.format(uid=self.current_uid),
-        #                       headers={
-        #                           'User-Agent': random.choice(ALL_AGENTS),
-        #                           'Referer': None
-        #                       },
-        # callback=self.parse_page,
-        # meta={"type": "lib_artist", "n_per_page": 15})
-
-        # step:6 get song_weekrank
-        # yield scrapy.Request(url=self.song_weekrank_url.format(uid=self.current_uid),
-        #                   headers={
-        #                       'User-Agent': random.choice(ALL_AGENTS),
-        #                       'Referer': None
-        #                   },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "song_weekrank", "n_per_page": 20})
-
-        # step:7 get song_totalrank
-        # yield scrapy.Request(url=self.song_totalrank_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "song_totalrank", "n_per_page": 20})
-
-        # step:8 get album_weekrank
-        # yield scrapy.Request(url=self.album_weekrank_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "album_weeklrank", "n_per_page": 20})
-
-        # step:9 get album_totalrank
-        # yield scrapy.Request(url=self.album_totalrank_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "album_totalrank", "n_per_page": 20})
-
-        # step:10 get artist_weekrank
-        # yield scrapy.Request(url=self.artist_weekrank_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "artist_weekrank", "n_per_page": 20})
-
-        # step:11 get artist_totalrank
-        # yield scrapy.Request(url=self.artist_totalrank_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "artist_totalrank", "n_per_page": 20})
-
-        # step:12 get collect
-        # yield scrapy.Request(url=self.collect_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "collect", "n_per_page": 12})
-
-        # step:13 get collect_fav
-        # yield scrapy.Request(url=self.collect_fav_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "collect_fav", "n_per_page": 12})
-
-        #step:14 get recent listen records
-        # yield scrapy.Request(url=self.recent_listen_url.format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "recent_listen", "n_per_page": 50})
-
-        # step:15 get followings
-        # yield scrapy.Request(url=self.following_url .format(uid=self.current_uid),
-        #                      headers={
-        #                          'User-Agent': random.choice(ALL_AGENTS),
-        #                          'Referer': None
-        #                      },
-        #                      callback=self.parse_page,
-        #                      meta={"type": "followings", "n_per_page": 12})
-
-        # step:16 get fans
-        yield scrapy.Request(url=self.fans_url.format(uid=self.current_uid),
-                             headers={
-                                 'User-Agent': random.choice(ALL_AGENTS),
-                                 'Referer': None
-                             },
-                             callback=self.parse_page,
-                             meta={"type": "fans", "n_per_page": 12})
+    def user_info(self, response):
+        user_info = XiamiInfo(response.body)
+        user_item = user_info.get_item("user_info")
+        user_item['uid'] = response.meta['uid']
+        user_item['item_type'] = 'user_info'
+        yield user_item
 
     def parse_page(self, response):
+        """
+        get the page info, then request for each page
+        """
         soup = BeautifulSoup(response.body)
         count_info = soup.find('div', 'all_page')
         if not count_info:
-            # 没有分页信息, 则表明只有一页,解析当前页即可
+            # no page split info, just parse current page
             lib = XiamiInfo(response.body)
             lib_items = lib.get_item(response.meta['type'])
-            lib_items['uid'] = self.current_uid
+            lib_items['uid'] = response.meta['uid']
             lib_items['item_type'] = response.meta['type']
             yield lib_items
         else:
@@ -202,11 +78,12 @@ class XmSpider(scrapy.Spider):
                                          'Referer': None
                                      },
                                      callback=self.get_item,
-                                     meta={"type": response.meta["type"]})
+                                     meta={"type": response.meta["type"],
+                                           "uid": response.meta["uid"]})
 
     def get_item(self, response):
         lib = XiamiInfo(response.body)
         lib_items = lib.get_item(response.meta['type'])
-        lib_items['uid'] = self.current_uid
+        lib_items['uid'] = response.meta['uid']
         lib_items['item_type'] = response.meta['type']
         yield lib_items
