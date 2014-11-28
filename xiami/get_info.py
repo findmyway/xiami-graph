@@ -170,11 +170,13 @@ class XiamiInfo:
             uid_info = x.find("p", "name").a.attrs["href"]
             pattern1 = re.compile(r'/u/(\d+)')
             uid = pattern1.search(uid_info).group(1)
-            followings_fans_info = x.find("span").text
-            pattern2 = re.compile(r'(\d+).+(\d+)')
-            search_result = pattern2.search(followings_fans_info)
-            n_followings = int(search_result.group(1))
-            n_fans = int(search_result.group(2))
-            s.add((uid, n_followings, n_fans))
+            # get n_fans, n_followings
+            # followings_fans_info = x.find("span").text
+            # pattern2 = re.compile(r'(\d+).+(\d+)')
+            # search_result = pattern2.search(followings_fans_info)
+            # n_followings = int(search_result.group(1))
+            # n_fans = int(search_result.group(2))
+            # s.add((uid, n_followings, n_fans))
+            s.add(uid)
         followings_item["items"] = s
         return followings_item

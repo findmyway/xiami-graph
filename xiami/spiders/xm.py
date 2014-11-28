@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 import re
 import random
+import time
 
+import redis
 import scrapy
+from redis.exceptions import ConnectionError
+from scrapy.exceptions import CloseSpider
 from bs4 import BeautifulSoup
+from scrapy import log
 
 from xiami.tools.userpage_info import BASIC_PARSE_INFOS
-
+from xiami.settings import REDIS_SETTING as rd_setting
 from xiami.tools.agents import ALL_AGENTS
 from xiami.get_info import XiamiInfo
 
@@ -15,6 +20,11 @@ class XmSpider(scrapy.Spider):
     name = "xm"
     allowed_domains = ["xiami.com"]
 
+    def __init__(self, *a, **kw):
+        super(XmSpider, self).__init__(*a, **kw)
+        # init redis commection
+        self.r = redis.StrictRedis(host='localhost', port=6379, db=0)
+
     def start_requests(self):
         # jump
         yield scrapy.Request(url="http://www.xiami.com",
@@ -22,8 +32,24 @@ class XmSpider(scrapy.Spider):
                              callback=self.gen_uids)
 
     def gen_uids(self, response):
-        uids = ["874999"]
+        # get n uids from redis, change n according to performance
+        n = 5
+        pipe = self.r.pipeline()
+        for i in range(n):
+            pipe.spop(rd_setting['uid_set'])
+        try:
+            uids = pipe.execute()
+        except ConnectionError, e:
+            print e
+            log.msg("Connection to redis failed! Check it!!!", "CRITICAL")
+            raise CloseSpider("Can not connect to redis")
+
         for uid in uids:
+            if uid == None:
+                print("The %s in redis is empty, sleep 5 seconds"
+                      % rd_setting['uid_set'])
+                time.sleep(5)
+                continue
             # parse user's basic info
             yield scrapy.Request(url="http://www.xiami.com/u/" + uid,
                                  headers={
