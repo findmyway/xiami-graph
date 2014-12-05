@@ -35,7 +35,7 @@ BASIC_PARSE_INFOS = {
         "url": "http://www.xiami.com/space/collect/u/{uid}/order/1/p/1/page"},
     "collect_fav": {
         "n_items_per_page": 12,
-        "url": "http://www.xiami.com/space/collect-fav/u/{uid}/order//page"},
+        "url": "http://www.xiami.com/space/collect-fav/u/{uid}/order/page"},
     "recent_listen": {
         "n_items_per_page": 50,
         "url": "http://www.xiami.com/space/charts-recent/u/{uid}/page"},

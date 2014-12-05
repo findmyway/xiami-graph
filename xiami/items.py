@@ -21,9 +21,11 @@ class UserItem(scrapy.Item):
     n_followers = scrapy.Field()
     n_fans = scrapy.Field()
     n_share = scrapy.Field()
+    crawl_time = scrapy.Field()
 
 class LibItem(scrapy.Item):
     item_type = scrapy.Field()
     uid = scrapy.Field()
     items = scrapy.Field()
+    crawl_time = scrapy.Field()
 
